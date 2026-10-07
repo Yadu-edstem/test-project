@@ -46,4 +46,23 @@
         </createTable>
     </changeSet>
 
+    <changeSet id="0.0.1-create-product" author="sample">
+        <createTable tableName="product">
+            <column name="id" type="${uuid.type}"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="name" type="VARCHAR(200)"><constraints nullable="false"/></column>
+            <column name="category" type="VARCHAR(100)"><constraints nullable="false"/></column>
+            <column name="price_cents" type="${money.type}"><constraints nullable="false"/></column>
+            <column name="stock" type="INT"><constraints nullable="false"/></column>
+            <column name="rating" type="DOUBLE"/>
+            <column name="created_at" type="${timestamp.type}"><constraints nullable="false"/></column>
+            <column name="updated_at" type="${timestamp.type}"><constraints nullable="false"/></column>
+        </createTable>
+        <createIndex tableName="product" indexName="idx_product_category">
+            <column name="category"/>
+        </createIndex>
+        <createIndex tableName="product" indexName="idx_product_price_cents">
+            <column name="price_cents"/>
+        </createIndex>
+    </changeSet>
+
 </databaseChangeLog>

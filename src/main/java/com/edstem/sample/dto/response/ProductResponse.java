@@ -1,0 +1,14 @@
+package com.edstem.sample.dto.response;
+
+import java.time.Instant;
+import java.util.UUID;
+
+public record ProductResponse(
+    UUID id,
+    String name,
+    String category,
+    long priceCents,
+    int stock,
+    Double rating,
+    Instant createdAt,
+    Instant updatedAt) {}
