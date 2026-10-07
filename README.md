@@ -1,8 +1,7 @@
 # sample
 
-Spring Boot 3.x (3.5) / Java 17+ layered monolith (JPA, Liquibase), following the
-`edstem-tech/lambdabooks-service` conventions. Each exercise below lives in the same service and
-was delivered in its own pull request.
+Spring Boot 3.x (3.5) / Java 17+ layered monolith (JPA, Liquibase). Each exercise below lives in
+the same service and was delivered in its own pull request.
 
 ## Run
 
