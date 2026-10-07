@@ -2,7 +2,7 @@ spring:
   application:
     name: sample
   datasource:
-    url: jdbc:h2:mem:sample;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1
+    url: jdbc:h2:mem:sample;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=10000
     username: sa
     password:
   jpa:
@@ -19,6 +19,11 @@ spring:
   h2:
     console:
       enabled: true
+  data:
+    web:
+      pageable:
+        max-page-size: 100
+        serialization-mode: via-dto
 
 server:
   port: 8080
