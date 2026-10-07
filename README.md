@@ -1,9 +1,11 @@
 # sample
 
-Spring Boot 3.5 / Java 21 layered monolith (JPA, Liquibase), following the
+Spring Boot 3.x (3.5) / Java 17+ layered monolith (JPA, Liquibase), following the
 `edstem-tech/lambdabooks-service` conventions.
 
 ## Run
+
+Requires Java 17 or newer (the build enforces it).
 
 ```bash
 ./mvnw spring-boot:run                       # H2 in PostgreSQL mode, http://localhost:8080
