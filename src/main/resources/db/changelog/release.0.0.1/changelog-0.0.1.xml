@@ -5,4 +5,19 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
+    <changeSet id="0.0.1-create-task" author="sample">
+        <createTable tableName="task">
+            <column name="id" type="${uuid.type}"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="title" type="VARCHAR(100)"><constraints nullable="false"/></column>
+            <column name="description" type="${text.type}"/>
+            <column name="status" type="VARCHAR(20)"><constraints nullable="false"/></column>
+            <column name="due_date" type="DATE"/>
+            <column name="created_at" type="${timestamp.type}"><constraints nullable="false"/></column>
+            <column name="updated_at" type="${timestamp.type}"><constraints nullable="false"/></column>
+        </createTable>
+        <createIndex tableName="task" indexName="idx_task_status">
+            <column name="status"/>
+        </createIndex>
+    </changeSet>
+
 </databaseChangeLog>

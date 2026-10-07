@@ -32,3 +32,20 @@ missing headers become 400 with per-field `details`; framework rejections keep t
   "error": { "code": "VALIDATION_ERROR", "message": "Validation failed",
              "details": { "title": ["Title is required"] } } }
 ```
+
+## Q1: Task manager
+
+| Method | Path | Notes |
+|---|---|---|
+| POST | `/api/v1/tasks` | 201; title required (max 100), status defaults to `TODO`, due date not in the past |
+| GET | `/api/v1/tasks?status=IN_PROGRESS&page=0&size=20` | paged, optional status filter |
+| GET / PUT / DELETE | `/api/v1/tasks/{id}` | 200 / 200 / 204; 404 when unknown |
+
+```bash
+curl -X POST localhost:8080/api/v1/tasks -H 'Content-Type: application/json' \
+  -d '{"title":"Ship it","status":"IN_PROGRESS","dueDate":"2026-12-01"}'
+curl 'localhost:8080/api/v1/tasks?status=IN_PROGRESS'
+```
+
+Unknown enum values (`"status":"LATER"`) and bad query values are reported against the field,
+like any other validation error.
