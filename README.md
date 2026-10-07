@@ -108,3 +108,26 @@ claim, BCrypt password hashes. 401 and 403 return the standard JSON error shape.
 in the source: the signing key and admin credentials come only from the environment. Only the
 user endpoints require a token; the other exercises' endpoints stay public so each can be tried on
 its own, and every new endpoint is authenticated by default.
+
+## Q4: Product catalog
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/api/v1/products` | filters `category`, `minPriceCents`, `maxPriceCents`, `inStock`, `name`; `page`, `size` (max 100), `sort=field,dir` |
+| GET | `/api/v1/products/{id}` | cached |
+| POST / PUT / DELETE | `/api/v1/products[/{id}]` | changes evict the cache |
+
+```bash
+curl 'localhost:8080/api/v1/products?category=Books&inStock=true&minPriceCents=1000&name=deluxe&sort=priceCents,desc&size=20'
+curl localhost:8080/api/v1/products/<id>
+```
+
+100 products are seeded on startup. Filters are JPA Specifications, so any combination works in
+one request; the page response carries `totalElements` and `totalPages`.
+
+**Fast lookups without stale data.** `GET /products/{id}` is `@Cacheable` (Caffeine); update and
+delete use `@CacheEvict`. The cache manager is transaction-aware, so evictions run after commit and
+a concurrent reader can't re-cache the old row mid-transaction. A 10-minute TTL is a safety net.
+**How we know:** `ProductCacheTest` spies on the repository and asserts that three lookups cause
+one `findById`, and that reads after update and delete are fresh. At runtime, `/actuator/caches`
+lists the cache.

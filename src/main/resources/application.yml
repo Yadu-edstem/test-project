@@ -24,6 +24,10 @@ spring:
       pageable:
         max-page-size: 100
         serialization-mode: via-dto
+  cache:
+    cache-names: products
+    caffeine:
+      spec: maximumSize=10000,expireAfterWrite=10m,recordStats
 
 server:
   port: 8080
@@ -32,7 +36,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,caches,metrics
 
 springdoc:
   swagger-ui:

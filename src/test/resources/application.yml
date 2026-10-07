@@ -20,10 +20,10 @@ spring:
       pageable:
         max-page-size: 100
         serialization-mode: via-dto
-
-logging:
-  level:
-    com.edstem: INFO
+  cache:
+    cache-names: products
+    caffeine:
+      spec: maximumSize=10000,expireAfterWrite=10m,recordStats
 
 app:
   short-link:
@@ -33,3 +33,7 @@ app:
     access-token-ttl: 15m
     admin-email: ""
     admin-password: ""
+
+logging:
+  level:
+    com.edstem: INFO
