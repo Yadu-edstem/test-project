@@ -65,4 +65,27 @@
         </createIndex>
     </changeSet>
 
+    <changeSet id="0.0.1-create-orders" author="sample">
+        <createTable tableName="customer_order">
+            <column name="id" type="${uuid.type}"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="idempotency_key" type="VARCHAR(100)"><constraints nullable="false" unique="true" uniqueConstraintName="uk_customer_order_idempotency_key"/></column>
+            <column name="status" type="VARCHAR(20)"><constraints nullable="false"/></column>
+            <column name="total_cents" type="${money.type}"><constraints nullable="false"/></column>
+            <column name="created_at" type="${timestamp.type}"><constraints nullable="false"/></column>
+            <column name="updated_at" type="${timestamp.type}"><constraints nullable="false"/></column>
+        </createTable>
+        <createTable tableName="order_item">
+            <column name="id" type="${uuid.type}"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="order_id" type="${uuid.type}"><constraints nullable="false" foreignKeyName="fk_order_item_order" references="customer_order(id)"/></column>
+            <column name="product_id" type="${uuid.type}"><constraints nullable="false" foreignKeyName="fk_order_item_product" references="product(id)"/></column>
+            <column name="quantity" type="INT"><constraints nullable="false"/></column>
+            <column name="unit_price_cents" type="${money.type}"><constraints nullable="false"/></column>
+            <column name="created_at" type="${timestamp.type}"><constraints nullable="false"/></column>
+            <column name="updated_at" type="${timestamp.type}"><constraints nullable="false"/></column>
+        </createTable>
+        <createIndex tableName="order_item" indexName="idx_order_item_order_id">
+            <column name="order_id"/>
+        </createIndex>
+    </changeSet>
+
 </databaseChangeLog>

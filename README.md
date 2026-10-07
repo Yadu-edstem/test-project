@@ -130,3 +130,37 @@ a concurrent reader can't re-cache the old row mid-transaction. A 10-minute TTL 
 **How we know:** `ProductCacheTest` spies on the repository and asserts that three lookups cause
 one `findById`, and that reads after update and delete are fresh. At runtime, `/actuator/caches`
 lists the cache.
+
+## Q5: Order service
+
+| Method | Path | Notes |
+|---|---|---|
+| POST | `/api/v1/orders` | header `Idempotency-Key`; 201 new, 200 replay, 409 insufficient stock |
+| GET | `/api/v1/orders/{id}` | |
+| POST | `/api/v1/orders/{id}/cancel` | returns the stock; 409 if already cancelled |
+
+```bash
+curl -X POST localhost:8080/api/v1/orders -H 'Content-Type: application/json' \
+  -H 'Idempotency-Key: 4f6c1f9e-order-1' \
+  -d '{"items":[{"productId":"<id>","quantity":2}]}'
+curl -X POST localhost:8080/api/v1/orders/<orderId>/cancel
+```
+
+**No overselling.** Each item is reserved with
+`UPDATE product SET stock = stock - :q WHERE id = :id AND stock >= :q`. The row lock serialises
+concurrent buyers, and the condition makes a reservation that would go negative affect zero rows.
+Any zero-row result throws `InsufficientStockException` (409), which rolls back the whole
+transaction, including earlier items and the order row: all-or-nothing. Items are merged per product
+and processed in id order, so two multi-item orders can't deadlock. Placing and cancelling evict
+the affected products from the Q4 cache. `OrderConcurrencyTest` fires 50 simultaneous orders at
+stock 10: exactly 10 succeed and stock ends at 0.
+
+**Retries.** The client sends an `Idempotency-Key` (e.g. a UUID per logical order) and reuses it on
+retry. A key seen before returns the original order with 200 and no side effects. Two concurrent
+requests with the same key race on a unique index: the loser's transaction rolls back (including
+its stock reservation) and it returns the winner's order. A test fires 10 concurrent retries and
+expects one order and one stock deduction. Reusing a key with a different payload returns the
+original order rather than an error.
+
+**Cancel.** The `PLACED → CANCELLED` transition is a conditional update, so a double cancel can't
+return stock twice.

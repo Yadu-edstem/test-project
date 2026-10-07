@@ -56,6 +56,9 @@ public class ProductService {
     productRepository.delete(findOrThrow(id));
   }
 
+  @CacheEvict(cacheNames = CacheConfig.PRODUCTS, key = "#id")
+  public void evict(UUID id) {}
+
   private Product findOrThrow(UUID id) {
     return productRepository
         .findById(id)
