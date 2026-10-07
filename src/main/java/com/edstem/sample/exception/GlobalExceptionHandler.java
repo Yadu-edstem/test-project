@@ -2,19 +2,28 @@ package com.edstem.sample.exception;
 
 import com.edstem.sample.dto.ApiResponse;
 import com.edstem.sample.dto.ErrorResponse;
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+import jakarta.servlet.ServletException;
 import jakarta.validation.ConstraintViolationException;
-import java.util.HashMap;
+import java.util.Arrays;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.MessageSourceResolvable;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.mapping.PropertyReferenceException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.BindException;
+import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
-import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -46,37 +55,75 @@ public class GlobalExceptionHandler {
     return ResponseEntity.status(e.getHttpStatus()).body(ApiResponse.error(error));
   }
 
-  @ExceptionHandler(MethodArgumentNotValidException.class)
-  public ResponseEntity<ApiResponse<Void>> handleValidation(MethodArgumentNotValidException e) {
-    Map<String, String[]> details = new HashMap<>();
-    e.getBindingResult()
-        .getFieldErrors()
-        .forEach(
-            fieldError ->
-                details.put(fieldError.getField(), new String[] {fieldError.getDefaultMessage()}));
-    return validationFailed(details);
+  @ExceptionHandler(BindException.class)
+  public ResponseEntity<ApiResponse<Void>> handleBinding(BindException e) {
+    return validationFailed(
+        e.getBindingResult().getFieldErrors().stream()
+            .collect(
+                Collectors.toMap(
+                    FieldError::getField,
+                    fieldError -> messages(fieldError.getDefaultMessage()),
+                    GlobalExceptionHandler::merge)));
   }
 
   @ExceptionHandler(ConstraintViolationException.class)
   public ResponseEntity<ApiResponse<Void>> handleConstraintViolation(
       ConstraintViolationException e) {
-    Map<String, String[]> details = new HashMap<>();
-    e.getConstraintViolations()
-        .forEach(
-            violation ->
-                details.put(
-                    violation.getPropertyPath().toString(), new String[] {violation.getMessage()}));
-    return validationFailed(details);
+    return validationFailed(
+        e.getConstraintViolations().stream()
+            .collect(
+                Collectors.toMap(
+                    violation -> violation.getPropertyPath().toString(),
+                    violation -> messages(violation.getMessage()),
+                    GlobalExceptionHandler::merge)));
   }
 
-  @ExceptionHandler({
-    HttpMessageNotReadableException.class,
-    MethodArgumentTypeMismatchException.class,
-    MissingServletRequestParameterException.class
-  })
-  public ResponseEntity<ApiResponse<Void>> handleBadRequest(Exception e) {
-    log.warn("Bad request: {}", e.getMessage());
-    return respond(HttpStatus.BAD_REQUEST, ERROR_CODE_BAD_REQUEST, "Malformed request");
+  @ExceptionHandler(HandlerMethodValidationException.class)
+  public ResponseEntity<ApiResponse<Void>> handleMethodValidation(
+      HandlerMethodValidationException e) {
+    return validationFailed(
+        e.getParameterValidationResults().stream()
+            .collect(
+                Collectors.toMap(
+                    result -> result.getMethodParameter().getParameterName(),
+                    result ->
+                        result.getResolvableErrors().stream()
+                            .map(MessageSourceResolvable::getDefaultMessage)
+                            .toArray(String[]::new),
+                    GlobalExceptionHandler::merge)));
+  }
+
+  @ExceptionHandler(HttpMessageNotReadableException.class)
+  public ResponseEntity<ApiResponse<Void>> handleUnreadable(HttpMessageNotReadableException e) {
+    if (e.getCause() instanceof InvalidFormatException invalid && !invalid.getPath().isEmpty()) {
+      String field = invalid.getPath().get(invalid.getPath().size() - 1).getFieldName();
+      return validationFailed(Map.of(field, messages(invalidValueMessage(invalid))));
+    }
+    log.warn("Unreadable request body: {}", e.getMessage());
+    return respond(HttpStatus.BAD_REQUEST, ERROR_CODE_BAD_REQUEST, "Malformed request body");
+  }
+
+  @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+  public ResponseEntity<ApiResponse<Void>> handleTypeMismatch(
+      MethodArgumentTypeMismatchException e) {
+    return validationFailed(Map.of(e.getName(), messages("Invalid value '" + e.getValue() + "'")));
+  }
+
+  @ExceptionHandler(MissingServletRequestParameterException.class)
+  public ResponseEntity<ApiResponse<Void>> handleMissingParameter(
+      MissingServletRequestParameterException e) {
+    return validationFailed(Map.of(e.getParameterName(), messages("is required")));
+  }
+
+  @ExceptionHandler(MissingRequestHeaderException.class)
+  public ResponseEntity<ApiResponse<Void>> handleMissingHeader(MissingRequestHeaderException e) {
+    return validationFailed(Map.of(e.getHeaderName(), messages("header is required")));
+  }
+
+  @ExceptionHandler(PropertyReferenceException.class)
+  public ResponseEntity<ApiResponse<Void>> handleUnknownProperty(PropertyReferenceException e) {
+    return validationFailed(
+        Map.of("sort", messages("Unknown property '" + e.getPropertyName() + "'")));
   }
 
   @ExceptionHandler(NoResourceFoundException.class)
@@ -98,11 +145,40 @@ public class GlobalExceptionHandler {
         HttpStatus.CONFLICT, ERROR_CODE_CONFLICT, "Request conflicts with existing data");
   }
 
+  @ExceptionHandler(ServletException.class)
+  public ResponseEntity<ApiResponse<Void>> handleServletException(ServletException e) {
+    if (e instanceof org.springframework.web.ErrorResponse webError) {
+      HttpStatus status = HttpStatus.valueOf(webError.getStatusCode().value());
+      log.warn("Request rejected with {}: {}", status.value(), e.getMessage());
+      return respond(status, status.name(), status.getReasonPhrase());
+    }
+    return handleUnexpected(e);
+  }
+
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ApiResponse<Void>> handleUnexpected(Exception e) {
     log.error("Unexpected error", e);
     return respond(
         HttpStatus.INTERNAL_SERVER_ERROR, ERROR_CODE_INTERNAL, "An unexpected error occurred");
+  }
+
+  private static String invalidValueMessage(InvalidFormatException invalid) {
+    Class<?> target = invalid.getTargetType();
+    if (target != null && target.isEnum()) {
+      return "Invalid value '"
+          + invalid.getValue()
+          + "', accepted values: "
+          + Arrays.toString(target.getEnumConstants());
+    }
+    return "Invalid value '" + invalid.getValue() + "'";
+  }
+
+  private static String[] messages(String message) {
+    return new String[] {message};
+  }
+
+  private static String[] merge(String[] first, String[] second) {
+    return Stream.concat(Arrays.stream(first), Arrays.stream(second)).toArray(String[]::new);
   }
 
   private ResponseEntity<ApiResponse<Void>> validationFailed(Map<String, String[]> details) {
