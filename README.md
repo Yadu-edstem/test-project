@@ -79,3 +79,31 @@ anything accepted can always be redirected to.
 **Accurate visit counts.** Each visit is a single `UPDATE … SET visit_count = visit_count + 1` in
 the database, so concurrent visits never overwrite each other (no read-modify-write in Java).
 `ShortLinkApiTest.concurrentVisitsAreAllCounted` fires 50 simultaneous visits and expects 50.
+
+## Q3: Authentication and roles
+
+| Method | Path | Notes |
+|---|---|---|
+| POST | `/api/v1/auth/register` | 201, creates a USER; 409 if the email is taken |
+| POST | `/api/v1/auth/login` | bearer token valid for 15 minutes |
+| GET | `/api/v1/users/me` | any logged-in user |
+| GET | `/api/v1/users` | ADMIN only (403 for USER, 401 without a token) |
+
+| Environment variable | Purpose | Default |
+|---|---|---|
+| `JWT_SECRET` | HS256 signing key, at least 32 bytes (startup fails if shorter) | random per start, so tokens die on restart |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | create an ADMIN account on startup | none |
+
+```bash
+curl -X POST localhost:8080/api/v1/auth/register -H 'Content-Type: application/json' \
+  -d '{"email":"me@example.com","password":"<at least 8 chars>"}'
+curl -X POST localhost:8080/api/v1/auth/login -H 'Content-Type: application/json' \
+  -d '{"email":"me@example.com","password":"<password>"}'
+curl localhost:8080/api/v1/users/me -H 'Authorization: Bearer <token>'
+```
+
+Stateless HS256 JWTs (Spring Security OAuth2 resource server, no sessions), role in a `roles`
+claim, BCrypt password hashes. 401 and 403 return the standard JSON error shape. No secret is
+in the source: the signing key and admin credentials come only from the environment. Only the
+user endpoints require a token; the other exercises' endpoints stay public so each can be tried on
+its own, and every new endpoint is authenticated by default.

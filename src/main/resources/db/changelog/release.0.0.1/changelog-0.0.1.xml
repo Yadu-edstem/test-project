@@ -35,4 +35,15 @@
         </createIndex>
     </changeSet>
 
+    <changeSet id="0.0.1-create-app-user" author="sample">
+        <createTable tableName="app_user">
+            <column name="id" type="${uuid.type}"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="email" type="VARCHAR(255)"><constraints nullable="false" unique="true" uniqueConstraintName="uk_app_user_email"/></column>
+            <column name="password_hash" type="VARCHAR(100)"><constraints nullable="false"/></column>
+            <column name="role" type="VARCHAR(20)"><constraints nullable="false"/></column>
+            <column name="created_at" type="${timestamp.type}"><constraints nullable="false"/></column>
+            <column name="updated_at" type="${timestamp.type}"><constraints nullable="false"/></column>
+        </createTable>
+    </changeSet>
+
 </databaseChangeLog>

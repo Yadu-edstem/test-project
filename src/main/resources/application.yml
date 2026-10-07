@@ -41,3 +41,8 @@ springdoc:
 app:
   short-link:
     base-url: ${SHORT_LINK_BASE_URL:http://localhost:8080}
+  security:
+    jwt-secret: ${JWT_SECRET:}
+    access-token-ttl: 15m
+    admin-email: ${ADMIN_EMAIL:}
+    admin-password: ${ADMIN_PASSWORD:}
