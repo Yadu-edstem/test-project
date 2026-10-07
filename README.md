@@ -49,3 +49,34 @@ curl 'localhost:8080/api/v1/tasks?status=IN_PROGRESS'
 
 Unknown enum values (`"status":"LATER"`) and bad query values are reported against the field,
 like any other validation error.
+
+## Q2: URL shortener
+
+| Method | Path | Notes |
+|---|---|---|
+| POST | `/api/v1/links` | `{url, expiresAt?}`; 201 new, 200 when the same URL + expiry already exists |
+| GET | `/s/{code}` | 302 to the original URL and counts the visit; 404 unknown, 410 expired |
+| GET | `/api/v1/links/{code}/stats` | original URL, visit count, created date |
+
+`SHORT_LINK_BASE_URL` sets the host used in returned short URLs (default `http://localhost:8080`).
+
+```bash
+curl -X POST localhost:8080/api/v1/links -H 'Content-Type: application/json' \
+  -d '{"url":"https://example.com/a/very/long/path","expiresAt":"2026-12-31T00:00:00Z"}'
+curl -i localhost:8080/s/<code>
+curl localhost:8080/api/v1/links/<code>/stats
+```
+
+**Shortening the same URL twice.** The same URL with the same expiry returns the existing link
+(200 instead of 201). That makes shortening idempotent, so client retries never create extra
+codes, and the code space isn't wasted. A different expiry is a different link, because the
+lifetimes differ. Trade-off: everyone who shortens the same URL shares one link and one visit
+count. If per-user stats mattered, creating a new code every time would be the better choice.
+
+**Codes.** 8 characters from `SecureRandom` over `[A-Za-z0-9]` (62^8 ≈ 2.2·10^14), checked for
+collisions, with a unique index as the final guard. URLs must parse as absolute http(s) URIs, so
+anything accepted can always be redirected to.
+
+**Accurate visit counts.** Each visit is a single `UPDATE … SET visit_count = visit_count + 1` in
+the database, so concurrent visits never overwrite each other (no read-modify-write in Java).
+`ShortLinkApiTest.concurrentVisitsAreAllCounted` fires 50 simultaneous visits and expects 50.
