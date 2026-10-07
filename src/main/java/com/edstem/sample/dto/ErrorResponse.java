@@ -1,4 +1,4 @@
-package com.edstem.sample.shared.dto;
+package com.edstem.sample.dto;
 
 import java.util.Map;
 import lombok.AllArgsConstructor;

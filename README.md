@@ -1,7 +1,7 @@
 # sample
 
-Spring Boot 3.5 / Java 21 modular monolith (Spring Modulith, JPA, Liquibase), structured like
-`edstem-tech/lambdabooks-service`.
+Spring Boot 3.5 / Java 21 layered monolith (JPA, Liquibase), following the
+`edstem-tech/lambdabooks-service` conventions.
 
 ## Run
 

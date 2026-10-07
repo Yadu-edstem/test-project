@@ -1,7 +1,7 @@
-package com.edstem.sample.shared.exception;
+package com.edstem.sample.exception;
 
-import com.edstem.sample.shared.dto.ApiResponse;
-import com.edstem.sample.shared.dto.ErrorResponse;
+import com.edstem.sample.dto.ApiResponse;
+import com.edstem.sample.dto.ErrorResponse;
 import jakarta.validation.ConstraintViolationException;
 import java.util.HashMap;
 import java.util.Map;

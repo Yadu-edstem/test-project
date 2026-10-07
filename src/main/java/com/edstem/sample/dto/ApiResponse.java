@@ -1,4 +1,4 @@
-package com.edstem.sample.shared.dto;
+package com.edstem.sample.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
