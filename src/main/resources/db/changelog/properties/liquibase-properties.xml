@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <property name="uuid.type" value="UUID"/>
+    <property name="money.type" value="BIGINT"/>
+    <property name="text.type" value="TEXT"/>
+    <property name="timestamp.type" value="TIMESTAMP"/>
+    <property name="boolean.type" value="BOOLEAN"/>
+
+</databaseChangeLog>
